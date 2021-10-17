@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+mod cost_based_lru;
 mod estimate_cost;
 mod vfs;
 
