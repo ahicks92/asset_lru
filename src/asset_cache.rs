@@ -17,18 +17,30 @@ use crate::*;
 
 type CacheHashMap<V> = std::collections::HashMap<String, V, ahash::RandomState>;
 
+/// Configuration for a [AssetCache].
+///
+/// This type doesn't implement `Default`: applications should carefully consider their memory requirements and decide
+/// on appropriate values.
 #[derive(Debug, derive_builder::Builder)]
 pub struct AssetCacheConfig {
     /// Maximum cost of the bytes cache in bytes.
     pub max_bytes_cost: u64,
     /// Maximum cost of the decoded cache in bytes.
     pub max_decoded_cost: u64,
-    /// Point at which we will stop caching bytes.
+    /// Maximum size of a single vec of bytes before we won't cache it.
+    ///
+    /// Use this to avoid caching huge objects.
     pub max_single_object_bytes_cost: u64,
-    /// Point at which we will avoid caching decoded objects.
+    /// Point at which we will avoid caching individual decoded objects.
+    ///
+    /// For example maybe your audio file is 50mb when decoded, and you'd like to not keep it around.
+    ///
+    /// Note that even when we choose not to cache such objects, we still keep them around via weak references, so it's
+    /// not always the case that the cache will refuse to give it back to you without decoding a second time.
     pub max_single_object_decoded_cost: u64,
 }
 
+/// The Asset cache itself.  See crate level documentation for details.
 pub struct AssetCache<VfsImpl: Vfs, DecoderImpl: Decoder> {
     config: AssetCacheConfig,
     pinned_entries: RwLock<CacheHashMap<Arc<DecoderImpl::Output>>>,
@@ -42,9 +54,12 @@ pub struct AssetCache<VfsImpl: Vfs, DecoderImpl: Decoder> {
     decoder: DecoderImpl,
 }
 
+/// An error from attempting to decode via the asset cache.
 #[derive(Debug, thiserror::Error)]
 pub enum CacheError<DecoderError> {
+    /// The error comes from the [Vfs].
     Vfs(IoError),
+    /// The error comes from the [Decoder].
     Decoder(DecoderError),
 }
 
@@ -190,7 +205,7 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
         self.find_or_decode(key)
     }
 
-    /// Pin an item, so that it is always present in the cache.
+    /// Pin an item, so that it is always present in the cache until explicitly removed.
     pub fn cache_always(&self, key: String, value: Arc<DecoderImpl::Output>) {
         let weak = Arc::downgrade(&value);
         self.pinned_entries

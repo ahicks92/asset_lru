@@ -53,6 +53,9 @@ impl<K: ?Sized, V> CacheEntry<K, V> {
     }
 }
 
+/// An LRU cache which bases eviction on the total cost (e.g. size) of the contained objects.
+///
+/// See crate-level documentation for details.
 pub struct CostBasedLru<K: ?Sized + std::hash::Hash + Eq, V> {
     entries: Vec<CacheEntry<K, V>>,
     /// Points at the index of the key.
