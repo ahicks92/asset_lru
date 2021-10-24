@@ -31,7 +31,6 @@ impl FilesystemVfs {
         // On Windows, canonicalize is currently very broken when relative path segments appear in the middle of a
         // path, and stdlib doesn't help us out. Go via `RelativePathBuf` to clean it up.
         let absolute = conv_path(path)?.to_logical_path(&self.root_path);
-        println!("absolute: {}", absolute.display());
         if !absolute.starts_with(&self.root_path) {
             return Err(Error::new(
                 ErrorKind::Other,
