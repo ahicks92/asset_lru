@@ -39,3 +39,11 @@ pub trait Decoder {
     /// Estimate the cost of a decoded item, usually the in-memory size.
     fn estimate_cost(&self, item: &Self::Output) -> Result<u64, Self::Error>;
 }
+
+impl<T: Vfs> Vfs for std::sync::Arc<T> {
+    type Reader = T::Reader;
+
+    fn open(&self, key: &str) -> Result<Self::Reader, Error> {
+        (**self).open(key)
+    }
+}

@@ -23,6 +23,9 @@
 //!
 //! To use this crate, implement the [Vfs] and [Decoder] traits, then construct a [AssetCache] with your chosen
 //! [AssetCacheConfig].  For simpler usage with a filesystem directory, use [FilesystemVfs], which does this for you.
+//!
+//! A blanket impl of [Vfs] is provided for [std::sync::Arc] so that any Arc to a Vfs is itself a Vfs.  This allows for
+//! sharing a Vfs between caches or anything else that might need it.
 mod asset_cache;
 mod cost_based_lru;
 mod filesystem_vfs;

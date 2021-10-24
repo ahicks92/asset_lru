@@ -234,7 +234,7 @@ mod tests {
     /// A VFS wrapping a `HashMap` for testing.
     struct HashMapVfs(Mutex<HashMap<String, Vec<u8>>>);
 
-    impl Vfs for Arc<HashMapVfs> {
+    impl Vfs for HashMapVfs {
         type Reader = std::io::Cursor<Vec<u8>>;
 
         fn open(&self, key: &str) -> Result<Self::Reader, IoError> {
