@@ -16,10 +16,8 @@ pub trait Vfs: Send + Sync + 'static {
 ///
 /// Readers should handle closing in their drop implementations.
 pub trait VfsReader: Read + Send + Sync + 'static {
-    /// If possible, return the size of this object once read.
-    ///
-    /// Only objects which can return their size are eligible for caching their encoded representations in memory.
-    fn get_size(&self) -> Result<Option<u64>, Error>;
+    /// Return the size of this object once read.    
+    fn get_size(&self) -> Result<u64, Error>;
 }
 
 /// A `Decoder` knows how to get from a reader to a decoded representation in memory.
