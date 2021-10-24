@@ -14,8 +14,10 @@ repository = "https://github.com/ahicks92/asset_lru"
 [dependencies]
 ahash = "0.7.6"
 derive_builder = "0.10.2"
+relative-path = "1.5.0"
 thiserror = "1.0.30"
 
 [dev-dependencies]
 lru = "0.7.0"
 proptest = "1.0.0"
+tempfile = "3.2.0"

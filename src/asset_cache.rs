@@ -56,7 +56,7 @@ pub struct AssetCache<VfsImpl: Vfs, DecoderImpl: Decoder> {
 
 /// An error from attempting to decode via the asset cache.
 #[derive(Debug, thiserror::Error)]
-pub enum CacheError<DecoderError> {
+pub enum AssetCacheError<DecoderError> {
     /// The error comes from the [Vfs].
     Vfs(IoError),
     /// The error comes from the [Decoder].
@@ -112,7 +112,7 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
     fn find_or_decode_postchecked(
         &self,
         key: &str,
-    ) -> Result<Arc<DecoderImpl::Output>, CacheError<DecoderImpl::Error>> {
+    ) -> Result<Arc<DecoderImpl::Output>, AssetCacheError<DecoderImpl::Error>> {
         // First, if we can find the item, return it immediately.
         if let Some(x) = self.search_for_item(key) {
             return Ok(x);
@@ -121,20 +121,20 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
         // If we can get the size of the item, and it is less than the single object limit, we cache a vec of bytes.
         // Otherwise, we feed the reader into the decoder directly.
 
-        let mut bytes_reader = self.vfs.open(key).map_err(CacheError::Vfs)?;
-        let size = bytes_reader.get_size().map_err(CacheError::Vfs)?;
+        let mut bytes_reader = self.vfs.open(key).map_err(AssetCacheError::Vfs)?;
+        let size = bytes_reader.get_size().map_err(AssetCacheError::Vfs)?;
         let decoded = if size <= self.config.max_single_object_bytes_cost {
             let maybe_cached_bytes = self.bytes_cache.lock().unwrap().get(key);
             if let Some(x) = maybe_cached_bytes {
                 self.decoder
                     .decode(&mut &x[..])
-                    .map_err(CacheError::Decoder)?
+                    .map_err(AssetCacheError::Decoder)?
             } else {
                 // Read to a vec, insert that vec, then read from the vec.
                 let mut dest = vec![];
                 bytes_reader
                     .read_to_end(&mut dest)
-                    .map_err(CacheError::Vfs)?;
+                    .map_err(AssetCacheError::Vfs)?;
                 let will_use = {
                     let mut guard = self.bytes_cache.lock().unwrap();
                     guard.insert(key.to_string().into(), dest, size);
@@ -142,20 +142,20 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
                 };
                 self.decoder
                     .decode(&mut &will_use[..])
-                    .map_err(CacheError::Decoder)?
+                    .map_err(AssetCacheError::Decoder)?
             }
         } else {
             // The object was too big, or we couldn't get the size; in this case, we feed the vfs directly to the
             // decoder.
             self.decoder
                 .decode(bytes_reader)
-                .map_err(CacheError::Decoder)?
+                .map_err(AssetCacheError::Decoder)?
         };
 
         let cost = self
             .decoder
             .estimate_cost(&decoded)
-            .map_err(CacheError::Decoder)?;
+            .map_err(AssetCacheError::Decoder)?;
         let res = if cost <= self.config.max_single_object_decoded_cost {
             let mut guard = self.decoded_cache.lock().unwrap();
             guard.insert(key.to_string().into(), decoded, cost);
@@ -176,7 +176,7 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
     fn find_or_decode(
         &self,
         key: &str,
-    ) -> Result<Arc<DecoderImpl::Output>, CacheError<DecoderImpl::Error>> {
+    ) -> Result<Arc<DecoderImpl::Output>, AssetCacheError<DecoderImpl::Error>> {
         if let Some(x) = self.search_for_item(key) {
             return Ok(x);
         }
@@ -201,7 +201,7 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
     pub fn get(
         &self,
         key: &str,
-    ) -> Result<Arc<DecoderImpl::Output>, CacheError<DecoderImpl::Error>> {
+    ) -> Result<Arc<DecoderImpl::Output>, AssetCacheError<DecoderImpl::Error>> {
         self.find_or_decode(key)
     }
 

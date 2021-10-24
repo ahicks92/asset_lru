@@ -22,11 +22,13 @@
 //!   keep them around forever outside the book-keeping mechanisms.
 //!
 //! To use this crate, implement the [Vfs] and [Decoder] traits, then construct a [AssetCache] with your chosen
-//! [AssetCacheConfig].
+//! [AssetCacheConfig].  For simpler usage with a filesystem directory, use [FilesystemVfs], which does this for you.
 mod asset_cache;
 mod cost_based_lru;
+mod filesystem_vfs;
 mod traits;
 
 pub use asset_cache::*;
 pub use cost_based_lru::*;
+pub use filesystem_vfs::*;
 pub use traits::*;
