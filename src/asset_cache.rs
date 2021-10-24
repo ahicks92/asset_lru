@@ -119,10 +119,13 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
                     bytes_reader
                         .read_to_end(&mut dest)
                         .map_err(CacheError::Vfs)?;
-                    let will_use = {
+                    let will_use = if dest.len() as u64 <= self.config.max_single_object_bytes_cost
+                    {
                         let mut guard = self.bytes_cache.lock().unwrap();
                         guard.insert(key.to_string().into(), dest, s);
                         guard.get(key).expect("We just inserted this")
+                    } else {
+                        Arc::new(dest)
                     };
                     self.decoder
                         .decode(&mut &will_use[..])
@@ -176,7 +179,7 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
             (*tmp).clone()
         };
         // The type here is important: it makes sure that we actually lock the mutex, by making this variable definitely
-        // b e a guard.  Any mistakes in the above rather complicated chain to set this up will be caught at compile
+        // be a guard.  Any mistakes in the above rather complicated chain to set this up will be caught at compile
         // time.
         let _guard: std::sync::MutexGuard<()> = mutex.lock().unwrap();
 
