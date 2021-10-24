@@ -2,38 +2,35 @@
 //!
 //! The cache caches the bytes representation from whatever the [Vfs] returns, then uses a [Decoder] on it when needed
 //! to get the actual object.
-use std::io::Read;
-
-///Estimate the cost of a decoded item.  This is usually in bytes.
-///
-/// The caches in this crate will cache up to a specified total cost, then begin
-/// evicting entries which are least recently used.
-///
-/// As an example, for files, this is the size of the file.
-pub trait EstimateCost {
-    fn estimate_cost(&self) -> u64;
-}
+use std::io::{Error, Read};
 
 /// "open" a "file" and return a [VfsReader] over it.
 pub trait Vfs: Send + Sync + 'static {
     type Reader: VfsReader;
-    type Error: std::error::Error;
 
     /// Open a file.
-    fn open(&self, key: &str) -> Result<Self::Reader, Self::Error>;
+    fn open(&self, key: &str) -> Result<Self::Reader, Error>;
 }
 
 /// A reader returned from the VFS.
+///
+/// Readers should handle closing in their drop implementations.
 pub trait VfsReader: Read + Send + Sync + 'static {
-    type Error: std::error::Error;
-
-    /// Will always be called by the cache when this object is no longer needed, possibly communicating the error to the user.
-    fn close(&mut self) -> Result<(), Self::Error> {
-        Ok(())
-    }
-
     /// If possible, return the size of this object once read.
     ///
     /// Only objects which can return their size are eligible for caching their encoded representations in memory.
-    fn get_size(&self) -> Result<Option<u64>, Self::Error>;
+    fn get_size(&self) -> Result<Option<u64>, Error>;
+}
+
+/// A `Decoder` knows how to get from a reader to a decoded representation in memory.
+///
+/// The output type must be sync in order to enable the cache to store elements behind `Arc`.
+pub trait Decoder {
+    type Output: Send + Sync;
+    type Error: std::error::Error;
+
+    fn decode<R: Read>(&self, reader: R) -> Result<Self::Output, Self::Error>;
+
+    /// Estimate the cost of a decoded item, usually the in-memory size.
+    fn estimate_cost(&self, item: &Self::Output) -> Result<u64, Self::Error>;
 }

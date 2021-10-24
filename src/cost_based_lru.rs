@@ -4,13 +4,14 @@
 //! auxiliary hash-based index.
 //!
 //! The keys may not die immediately on eviction; only the value should be large.
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
 use ahash::RandomState;
 
-struct OccupiedEntry<K, V> {
+struct OccupiedEntry<K: ?Sized, V> {
     key: Arc<K>,
     item: Arc<V>,
     prev: Option<usize>,
@@ -22,14 +23,14 @@ struct EmptyEntry {
     next_empty: Option<usize>,
 }
 
-enum CacheEntry<K, V> {
+enum CacheEntry<K: ?Sized, V> {
     /// This entry is empty, possibly with a pointer at the next empty entry.
     Empty(EmptyEntry),
     /// This entry is occupied, and doubley linked to the previous and next entry.
     Occupied(OccupiedEntry<K, V>),
 }
 
-impl<K, V> CacheEntry<K, V> {
+impl<K: ?Sized, V> CacheEntry<K, V> {
     fn as_occupied_mut(&mut self) -> &mut OccupiedEntry<K, V> {
         match self {
             Self::Occupied(ref mut x) => x,
@@ -56,7 +57,7 @@ impl<K, V> CacheEntry<K, V> {
     }
 }
 
-pub struct CostBasedLru<K: std::hash::Hash + Eq, V> {
+pub struct CostBasedLru<K: ?Sized + std::hash::Hash + Eq, V> {
     entries: Vec<CacheEntry<K, V>>,
     /// Points at the index of the key.
     index: HashMap<Arc<K>, usize, RandomState>,
@@ -69,7 +70,7 @@ pub struct CostBasedLru<K: std::hash::Hash + Eq, V> {
     current_cost: u64,
 }
 
-impl<K: Hash + Eq + std::fmt::Debug, V: std::fmt::Debug> CostBasedLru<K, V> {
+impl<K: ?Sized + Hash + Eq, V> CostBasedLru<K, V> {
     pub fn new(max_cost: u64) -> CostBasedLru<K, V> {
         CostBasedLru {
             entries: Default::default(),
@@ -127,7 +128,11 @@ impl<K: Hash + Eq + std::fmt::Debug, V: std::fmt::Debug> CostBasedLru<K, V> {
         }
     }
 
-    pub fn get(&mut self, key: &K) -> Option<Arc<V>> {
+    pub fn get<Q: ?Sized>(&mut self, key: &Q) -> Option<Arc<V>>
+    where
+        Arc<K>: Borrow<Q>,
+        Q: std::hash::Hash + Eq,
+    {
         let ind = *self.index.get(key)?;
         self.make_most_recent(ind);
         Some(self.entries[ind].as_occupied_mut().item.clone())
@@ -153,7 +158,11 @@ impl<K: Hash + Eq + std::fmt::Debug, V: std::fmt::Debug> CostBasedLru<K, V> {
         }
     }
 
-    pub fn remove(&mut self, key: &K) -> Option<Arc<V>> {
+    pub fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<Arc<V>>
+    where
+        Arc<K>: Borrow<Q>,
+        Q: std::hash::Hash + Eq,
+    {
         let ind = self.index.remove(key)?;
         let old = self.become_empty(ind);
         Some(old)
@@ -172,21 +181,20 @@ impl<K: Hash + Eq + std::fmt::Debug, V: std::fmt::Debug> CostBasedLru<K, V> {
     }
 
     /// Add an entry to the cache.  Return the old entry if this key was already present.
-    pub fn insert(&mut self, key: K, value: V, cost: u64) -> Option<Arc<V>> {
-        let key_arc = Arc::new(key);
-        let ret = self.remove(&*key_arc);
+    pub fn insert(&mut self, key: Arc<K>, value: V, cost: u64) -> Option<Arc<V>> {
+        let ret = self.remove(&key);
         let ind = self.find_empty();
         let old_head = self.entries_head;
 
         self.entries[ind] = CacheEntry::Occupied(OccupiedEntry {
-            key: key_arc.clone(),
+            key: key.clone(),
             item: Arc::new(value),
             prev: None,
             next: self.entries_head,
             cost,
         });
         self.entries_head = Some(ind);
-        self.index.insert(key_arc, ind);
+        self.index.insert(key, ind);
         self.current_cost += cost;
 
         // Link up the prev of the old head.
@@ -224,6 +232,10 @@ impl<K: Hash + Eq + std::fmt::Debug, V: std::fmt::Debug> CostBasedLru<K, V> {
             ind = ret.next;
             Some((&*ret.key, &*ret.item))
         })
+    }
+
+    pub fn clear(&mut self) {
+        *self = Self::new(self.max_cost);
     }
 }
 
@@ -279,7 +291,7 @@ mod tests {
                         let right: Option<u64> = ours.get(&k).as_deref().cloned();
                         prop_assert_eq!(left, right);
                     },
-                    Put(k, v) => prop_assert_eq!(known_good.put(k, v), ours.insert(k, v, 1).as_deref().cloned()),
+                    Put(k, v) => prop_assert_eq!(known_good.put(k, v), ours.insert(Arc::new(k), v, 1).as_deref().cloned()),
                     Delete(k) => prop_assert_eq!(known_good.pop(&k), ours.remove(&k).as_deref().cloned()),
                 }
 
@@ -296,11 +308,11 @@ mod tests {
     #[test]
     fn test_eviction() {
         let mut cache = CostBasedLru::<u64, u64>::new(10);
-        cache.insert(1, 1, 1);
-        cache.insert(2, 2, 2);
-        cache.insert(3, 3, 3);
-        cache.insert(4, 4, 4);
-        cache.insert(5, 5, 5);
+        cache.insert(Arc::new(1), 1, 1);
+        cache.insert(Arc::new(2), 2, 2);
+        cache.insert(Arc::new(3), 3, 3);
+        cache.insert(Arc::new(4), 4, 4);
+        cache.insert(Arc::new(5), 5, 5);
 
         let state = cache
             .iter()
