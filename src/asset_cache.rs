@@ -251,10 +251,6 @@ mod tests {
         pub fn insert(&self, key: &str, value: Vec<u8>) -> Option<Vec<u8>> {
             self.0.lock().unwrap().insert(key.to_string(), value)
         }
-
-        fn remove(&self, key: &str) -> Option<Vec<u8>> {
-            self.0.lock().unwrap().remove(key)
-        }
     }
 
     struct HashMapDecoder;

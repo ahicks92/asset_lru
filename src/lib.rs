@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 mod asset_cache;
 mod cost_based_lru;
 mod traits;

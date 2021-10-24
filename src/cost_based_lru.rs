@@ -51,10 +51,6 @@ impl<K: ?Sized, V> CacheEntry<K, V> {
             _ => panic!("Entry should be empty"),
         }
     }
-
-    fn is_empty(&self) -> bool {
-        matches!(self, Self::Empty(_))
-    }
 }
 
 pub struct CostBasedLru<K: ?Sized + std::hash::Hash + Eq, V> {
