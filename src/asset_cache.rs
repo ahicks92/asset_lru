@@ -58,9 +58,11 @@ pub struct AssetCache<VfsImpl: Vfs, DecoderImpl: Decoder> {
 #[derive(Debug, thiserror::Error)]
 pub enum AssetCacheError<DecoderError> {
     /// The error comes from the [Vfs].
-    Vfs(IoError),
+    #[error("VFS error reading from cache")]
+    Vfs(#[source] IoError),
     /// The error comes from the [Decoder].
-    Decoder(DecoderError),
+    #[error("Decoder error reading from cache")]
+    Decoder(#[source] DecoderError),
 }
 
 impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
