@@ -34,7 +34,7 @@ pub trait Decoder {
     type Output: Send + Sync;
     type Error: std::error::Error;
 
-    fn decode<R: Read>(&self, reader: R) -> Result<Self::Output, Self::Error>;
+    fn decode<R: Read + Seek>(&self, reader: R) -> Result<Self::Output, Self::Error>;
 
     /// Estimate the cost of a decoded item, usually the in-memory size.
     fn estimate_cost(&self, item: &Self::Output) -> Result<u64, Self::Error>;
@@ -44,8 +44,8 @@ pub trait Decoder {
     ///
     /// By default this just forwards to the `read` function.  Useful because some decoders are faster if they can be
     /// fed a slice of bytes, for example serde_json.
-    fn decode_bytes(&self, mut bytes: &[u8]) -> Result<Self::Output, Self::Error> {
-        self.decode(&mut bytes)
+    fn decode_bytes(&self, bytes: &[u8]) -> Result<Self::Output, Self::Error> {
+        self.decode(std::io::Cursor::new(bytes))
     }
 }
 

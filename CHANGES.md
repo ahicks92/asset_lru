@@ -1,4 +1,8 @@
-# 0.1.0 (WIP)
+# 0.1.1 (2021-11-07)
+
+- We also need the right bound on the `Decoder` trait.
+
+# 0.1.0 (2021-11-07)
 
 - Add a seek bound to `VfsReader`.  This is for loading assets, and many decoders we might write require this.
 
