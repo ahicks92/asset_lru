@@ -1,6 +1,6 @@
 [package]
 name = "asset_lru"
-version = "0.0.3"
+version = "0.1.0"
 description = "A two-level cache for objects which are bigger in memory than on disk"
 authors = ["Austin Hicks <ahicks@ahicks.io>"]
 edition = "2018"
