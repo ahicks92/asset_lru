@@ -38,6 +38,15 @@ pub trait Decoder {
 
     /// Estimate the cost of a decoded item, usually the in-memory size.
     fn estimate_cost(&self, item: &Self::Output) -> Result<u64, Self::Error>;
+
+    /// Sometimes it is possible for the cache to directly provide bytes.  Implement this optional method to take
+    /// advantage of that case.
+    ///
+    /// By default this just forwards to the `read` function.  Useful because some decoders are faster if they can be
+    /// fed a slice of bytes, for example serde_json.
+    fn decode_bytes(&self, mut bytes: &[u8]) -> Result<Self::Output, Self::Error> {
+        self.decode(&mut bytes)
+    }
 }
 
 impl<T: Vfs> Vfs for std::sync::Arc<T> {

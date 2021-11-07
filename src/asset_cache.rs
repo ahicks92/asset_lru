@@ -129,7 +129,7 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
             let maybe_cached_bytes = self.bytes_cache.lock().unwrap().get(key);
             if let Some(x) = maybe_cached_bytes {
                 self.decoder
-                    .decode(&mut &x[..])
+                    .decode_bytes(&x[..])
                     .map_err(AssetCacheError::Decoder)?
             } else {
                 // Read to a vec, insert that vec, then read from the vec.
