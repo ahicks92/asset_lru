@@ -7,6 +7,7 @@ edition = "2018"
 license = "BSL-1.0"
 readme = "README.md"
 repository = "https://github.com/ahicks92/asset_lru"
+documentation = "https://docs.rs/asset_lru/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
