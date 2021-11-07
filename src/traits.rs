@@ -2,7 +2,7 @@
 //!
 //! The cache caches the bytes representation from whatever the [Vfs] returns, then uses a [Decoder] on it when needed
 //! to get the actual object.
-use std::io::{Error, Read};
+use std::io::{Error, Read, Seek};
 
 /// "open" a "file" and return a [VfsReader] over it.
 ///
@@ -18,7 +18,7 @@ pub trait Vfs: Send + Sync + 'static {
 /// A reader returned from the VFS.
 ///
 /// Readers should handle closing in their drop implementations.
-pub trait VfsReader: Read + Send + Sync + 'static {
+pub trait VfsReader: Read + Seek + Send + Sync + 'static {
     /// Return the size of this object once read.
     ///
     /// This function should try to be as inexpensive as possible.
