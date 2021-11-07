@@ -143,7 +143,7 @@ impl<VfsImpl: Vfs, DecoderImpl: Decoder> AssetCache<VfsImpl, DecoderImpl> {
                     guard.get(key).expect("We just inserted this")
                 };
                 self.decoder
-                    .decode(std::io::Cursor::new(&mut &will_use[..]))
+                    .decode(std::io::Cursor::new(&will_use[..]))
                     .map_err(AssetCacheError::Decoder)?
             }
         } else {
