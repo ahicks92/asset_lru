@@ -1,3 +1,8 @@
+# 0.1.2 (2021-12-12)
+
+- Call `Decoder::decode_bytes` when we are going to cache an object for the first time.  Now, the only time we go
+  through `Decoder::decode` is when we aren't going to cache the object at all (but do not rely on this guarantee).
+
 # 0.1.1 (2021-11-07)
 
 - We also need the right bound on the `Decoder` trait.
